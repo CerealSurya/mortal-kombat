@@ -45,12 +45,16 @@ uint32_t Random(uint32_t n){
 }
 
 SlidePot Sensor(1500,0); // copy calibration from Lab 7
-int16_t startX = 0;
-int16_t startY = 0;
+int16_t startX = 20;
+int16_t startY = 0; //Put in bottom left
 
 Character Player1(startX, startY, CHAR1_SPRITES);
-Character Player2(startX, startY, CHAR1_SPRITES);
-bool drawScreen = false
+
+int16_t x = 20;
+int16_t y = 160 - CHAR2_SPRITES.idle->WIDTH;
+Character Player2(x, y, CHAR2_SPRITES); //Put in bottom right
+
+bool drawScreen = false;
 // games  engine runs at 30Hz
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
@@ -134,6 +138,7 @@ int main(void){ // main2
   ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
   ST7735_FillScreen(ST7735_BLACK);
   Player1.draw();
+  Player2.draw();
   // ST7735_DrawBitmap(22, 159, PlayerShip0, 18,8); // player ship bottom
   // ST7735_DrawBitmap(53, 151, Bunker0, 18,5);
   // ST7735_DrawBitmap(42, 159, PlayerShip1, 18,8); // player ship bottom
@@ -158,17 +163,17 @@ int main(void){ // main2
   // ST7735_OutString((char *)"Earthling!");
   // ST7735_SetCursor(2, 4);
   // ST7735_OutUDec(1234);
-  Clock_Delay1ms(1000);
-  Player1.update(CharacterState::PUNCH);
-  Player1.draw();
+  // Clock_Delay1ms(1000);
+  // Player1.update(CharacterState::PUNCH);
+  // Player1.draw();
 
-  Clock_Delay1ms(1000);
-  Player1.update(CharacterState::KICK);
-  Player1.draw();
+  // Clock_Delay1ms(1000);
+  // Player1.update(CharacterState::KICK);
+  // Player1.draw();
 
-  Clock_Delay1ms(1000);
-  Player1.update(CharacterState::DODGE);
-  Player1.draw();
+  // Clock_Delay1ms(1000);
+  // Player1.update(CharacterState::DODGE);
+  // Player1.draw();
   while(1)
   {
     

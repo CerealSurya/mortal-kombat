@@ -13,11 +13,60 @@ Character::Character(int16_t startX, int16_t startY, const SpriteSet& sprites)
       spriteIdle(sprites.idle),
       spritePunch(sprites.punch),
       spriteKick(sprites.kick),
-      spriteDodge(sprites.dodge)
+      spriteDodge(sprites.dodge),
+      health(100),
+      isAlive(true)
 {}
 
+bool Character::takeDmg(CharacterState attack)
+{
+    //TODO: Add knockback, kick = greater knockback
+    if (attack == CharacterState::KICK)
+    {
+        health -= 10;
+    }
+    else if (attack == CharacterState::PUNCH)
+    {
+        health -= 5;
+    }
+    if (health <= 0)
+    {
+        health = 0;
+        isAlive = false;
+    }
+    return 1;
+}
+
+bool Character::checkHit(int16_t eX, int16_t eY)
+{
+    //Assume that eX and eY is the x, y coords of the other character
+    //Creates (32x32) square based on those x,y coords and determines if there is any overlap with our own coords
+
+    // Our bounding box (bottom-left origin, extends right and up)
+    int16_t ourLeft   = x;
+    int16_t ourRight  = x  + currentSprite->WIDTH;
+    int16_t ourBottom = y;
+    int16_t ourTop    = y  + currentSprite->HEIGHT;
+
+    // Enemy bounding box using the passed in coords
+    int16_t eLeft     = eX;
+    int16_t eRight    = eX + currentSprite->WIDTH;   // assumes same sprite size
+    int16_t eBottom   = eY;
+    int16_t eTop      = eY + currentSprite->HEIGHT;
+
+    // No overlap if one box is entirely outside the other on any axis
+    bool noOverlap = (ourRight  <= eLeft)    // we are fully left of enemy
+                  || (ourLeft   >= eRight)   // we are fully right of enemy
+                  || (ourTop    <= eBottom)  // we are fully below enemy
+                  || (ourBottom >= eTop);    // we are fully above enemy
+
+    return !noOverlap;
+
+}
+
 // New function to move in X direction
-void Character::moveX(int16_t amount) {
+void Character::moveX(int16_t amount)
+{
     x += amount;
 
     // Update facing direction based on movement sign
@@ -26,12 +75,14 @@ void Character::moveX(int16_t amount) {
 }
 
 // New function to move in Y direction
-void Character::moveY(int16_t amount) {
+void Character::moveY(int16_t amount)
+{
     y += amount;
 }
 
 // Removed deltaX as requested
-void Character::update(CharacterState requestedState) {
+void Character::update(CharacterState requestedState)
+{
     // Only accept a new action if we are currently IDLE.
     if (state == CharacterState::IDLE) {
         if (requestedState != CharacterState::IDLE)
@@ -60,7 +111,8 @@ void Character::update(CharacterState requestedState) {
     selectSprite();
 }
 
-void Character::selectSprite() {
+void Character::selectSprite()
+{
     prevSprite = currentSprite; 
     switch (state) {
         case CharacterState::PUNCH: currentSprite = spritePunch; break;
@@ -71,7 +123,8 @@ void Character::selectSprite() {
     }
 }
 
-void Character::draw() {
+void Character::draw()
+{
     // Always erase the last rendered position unconditionally
     ST7735_FillRect(prevX, prevY, prevSprite->WIDTH, prevSprite->HEIGHT, ST7735_BLACK);
     //ST7735_DrawBitmap(prevX, prevY, 0x0000, prevSprite->WIDTH, prevSprite->HEIGHT);
@@ -84,12 +137,14 @@ void Character::draw() {
     prevSprite = currentSprite;
 }
 
-void Character::blitSprite(int16_t drawX, int16_t drawY, const SPRITE_ARRAY* sprite, bool transparent, uint16_t transparentColor) {
+void Character::blitSprite(int16_t drawX, int16_t drawY, const SPRITE_ARRAY* sprite, bool transparent, uint16_t transparentColor)
+{
     // Ensure you are using the correct member names from your SPRITE_ARRAY struct (e.g., .data vs .arr)
     ST7735_DrawBitmap(drawX, drawY + sprite->HEIGHT - 1, sprite->arr, sprite->WIDTH, sprite->HEIGHT);
 }
 
-void Character::setPosition(int16_t newX, int16_t newY) {
+void Character::setPosition(int16_t newX, int16_t newY)
+{
     prevX = x;
     prevY = y;
     x     = newX;

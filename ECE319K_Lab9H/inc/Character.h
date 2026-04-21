@@ -29,7 +29,10 @@ public:
     void draw();
     
     void setPosition(int16_t x, int16_t y);
-    
+
+    bool takeDmg(CharacterState attack);
+    bool checkHit(int16_t eX, int16_t eY);
+
     void moveX(int16_t amount);
     void moveY(int16_t amount);
 
@@ -40,6 +43,9 @@ public:
 private:
     int16_t x, y;
     int16_t prevX, prevY;
+
+    int16_t health;
+    bool isAlive;
 
     CharacterState state;
     Direction facing;
