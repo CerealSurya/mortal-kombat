@@ -2,9 +2,6 @@ Debug/*
 designdocuments/*
 images/*
 sounds/*
-targetConfigs/*
 ticlang/*
-.ccsproject
-.clangd
 mspm0g3507.cmd
 .DS_Store
