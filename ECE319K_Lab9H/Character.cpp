@@ -20,14 +20,15 @@ Character::Character(int16_t startX, int16_t startY, const SpriteSet& sprites)
 
 bool Character::takeDmg(CharacterState attack)
 {
-    //TODO: Add knockback, kick = greater knockback
     if (attack == CharacterState::KICK)
     {
         health -= 10;
+        moveX(10); //Knockback
     }
     else if (attack == CharacterState::PUNCH)
     {
         health -= 5;
+        moveX(5);
     }
     if (health <= 0)
     {
