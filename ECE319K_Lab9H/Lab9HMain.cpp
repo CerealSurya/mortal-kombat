@@ -35,6 +35,15 @@ void PLL_Init(void){ // set phase lock loop (PLL)
   Clock_Init80MHz(0);   // run this line for 80MHz
 }
 
+void initScreen(void)
+{
+  ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
+  ST7735_FillScreen(ST7735_BLACK);
+  ST7735_FillRect(0, 0, 20, 160, ST7735_DARKGREY); //floor
+
+  ST7735_FillRect(100, 0, 20, 50, ST7735_RED); //Player1 health bar
+  ST7735_FillRect(100, 110, 20, 50, ST7735_RED); //Player2 health bar
+}
 uint32_t M=1;
 uint32_t Random32(void){
   M = 1664525*M+1013904223;
@@ -135,49 +144,16 @@ int main(void){ // main2
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
-  ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
-  ST7735_FillScreen(ST7735_BLACK);
+  initScreen();
   Player1.draw();
   Player2.draw();
-  // ST7735_DrawBitmap(22, 159, PlayerShip0, 18,8); // player ship bottom
-  // ST7735_DrawBitmap(53, 151, Bunker0, 18,5);
-  // ST7735_DrawBitmap(42, 159, PlayerShip1, 18,8); // player ship bottom
-  // ST7735_DrawBitmap(62, 159, PlayerShip2, 18,8); // player ship bottom
-  // ST7735_DrawBitmap(82, 159, PlayerShip3, 18,8); // player ship bottom
-  // ST7735_DrawBitmap(0, 9, SmallEnemy10pointA, 16,10);
-  // ST7735_DrawBitmap(20,9, SmallEnemy10pointB, 16,10);
-  // ST7735_DrawBitmap(40, 9, SmallEnemy20pointA, 16,10);
-  // ST7735_DrawBitmap(60, 9, SmallEnemy20pointB, 16,10);
-  // ST7735_DrawBitmap(80, 9, SmallEnemy30pointA, 16,10);
-
-  // for(uint32_t t=500;t>0;t=t-5){
-  //   SmallFont_OutVertical(t,104,6); // top left
-  //   Clock_Delay1ms(50);              // delay 50 msec
-  // }
-  // ST7735_FillScreen(0x0000);   // set screen to black
-  // ST7735_SetCursor(1, 1);
-  // ST7735_OutString((char *)"GAME OVER");
-  // ST7735_SetCursor(1, 2);
-  // ST7735_OutString((char *)"Nice try,");
-  // ST7735_SetCursor(1, 3);
-  // ST7735_OutString((char *)"Earthling!");
-  // ST7735_SetCursor(2, 4);
-  // ST7735_OutUDec(1234);
-  // Clock_Delay1ms(1000);
-  // Player1.update(CharacterState::PUNCH);
-  // Player1.draw();
-
-  // Clock_Delay1ms(1000);
-  // Player1.update(CharacterState::KICK);
-  // Player1.draw();
-
-  // Clock_Delay1ms(1000);
-  // Player1.update(CharacterState::DODGE);
-  // Player1.draw();
   while(1)
   {
-    
-
+    if (Player1.checkHit(Player2.getX(), Player2.getY()))
+    {continue;} //Cat stops moving once it hits the other dude
+    Player2.moveX(-10);
+    Player2.draw();
+    Clock_Delay1ms(1000);
   }
 }
 

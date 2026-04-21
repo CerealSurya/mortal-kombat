@@ -44,15 +44,15 @@ bool Character::checkHit(int16_t eX, int16_t eY)
 
     // Our bounding box (bottom-left origin, extends right and up)
     int16_t ourLeft   = x;
-    int16_t ourRight  = x  + currentSprite->WIDTH;
+    int16_t ourRight  = x  + 32;
     int16_t ourBottom = y;
-    int16_t ourTop    = y  + currentSprite->HEIGHT;
+    int16_t ourTop    = y  + 32;
 
     // Enemy bounding box using the passed in coords
     int16_t eLeft     = eX;
-    int16_t eRight    = eX + currentSprite->WIDTH;   // assumes same sprite size
+    int16_t eRight    = eX + 32;
     int16_t eBottom   = eY;
-    int16_t eTop      = eY + currentSprite->HEIGHT;
+    int16_t eTop      = eY + 32;
 
     // No overlap if one box is entirely outside the other on any axis
     bool noOverlap = (ourRight  <= eLeft)    // we are fully left of enemy
@@ -61,23 +61,22 @@ bool Character::checkHit(int16_t eX, int16_t eY)
                   || (ourBottom >= eTop);    // we are fully above enemy
 
     return !noOverlap;
-
 }
 
 // New function to move in X direction
 void Character::moveX(int16_t amount)
-{
-    x += amount;
+{ //Swapped x, y because horizontal screen
+    y += amount;
 
     // Update facing direction based on movement sign
-    if (amount > 0) facing = Direction::RIGHT;
+    if (amount > 0) facing = Direction::RIGHT; //DO WE NEED THIs???
     else if (amount < 0) facing = Direction::LEFT;
 }
 
 // New function to move in Y direction
 void Character::moveY(int16_t amount)
 {
-    y += amount;
+    x += amount;
 }
 
 // Removed deltaX as requested
