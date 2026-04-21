@@ -34,16 +34,6 @@ void PLL_Init(void){ // set phase lock loop (PLL)
   // Clock_Init40MHz(); // run this line for 40MHz
   Clock_Init80MHz(0);   // run this line for 80MHz
 }
-
-void initScreen(void)
-{
-  ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
-  ST7735_FillScreen(ST7735_BLACK);
-  ST7735_FillRect(0, 0, 20, 160, ST7735_DARKGREY); //floor
-
-  ST7735_FillRect(100, 0, 20, 50, ST7735_RED); //Player1 health bar
-  ST7735_FillRect(100, 110, 20, 50, ST7735_RED); //Player2 health bar
-}
 uint32_t M=1;
 uint32_t Random32(void){
   M = 1664525*M+1013904223;
@@ -62,6 +52,29 @@ Character Player1(startX, startY, CHAR1_SPRITES);
 int16_t x = 20;
 int16_t y = 160 - CHAR2_SPRITES.idle->WIDTH;
 Character Player2(x, y, CHAR2_SPRITES); //Put in bottom right
+
+void initScreen(void)
+{
+  ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
+  ST7735_FillScreen(ST7735_BLACK);
+  ST7735_FillRect(0, 0, 20, 160, ST7735_DARKGREY); //floor
+
+  ST7735_FillRect(100, 0, 10, 50, ST7735_RED); //Player1 health bar
+  ST7735_FillRect(100, 110, 10, 50, ST7735_RED); //Player2 health bar
+}
+
+void updateHealth(void)
+{
+  //Update Player1 health
+  int16_t health1 = Player1.getHealth();
+  int16_t health2 = 100 - (Player2.getHealth());
+
+  ST7735_FillRect(100, 0, 10, 50, ST7735_BLACK); //Player1 health bar
+  ST7735_FillRect(100, 110, 10, 50, ST7735_BLACK); //Player2 health bar
+
+  ST7735_FillRect(100, 0, 10, health1 / 2, ST7735_RED); //Player1 health bar
+  ST7735_FillRect(100, 110 + health2 / 2, 10, 50, ST7735_RED); //Player2 health bar
+}
 
 bool drawScreen = false;
 // games  engine runs at 30Hz
@@ -153,6 +166,9 @@ int main(void){ // main2
     {continue;} //Cat stops moving once it hits the other dude
     Player2.moveX(-10);
     Player2.draw();
+    Player2.takeDmg(CharacterState::KICK);
+    Player1.takeDmg(CharacterState::KICK);
+    updateHealth();
     Clock_Delay1ms(1000);
   }
 }

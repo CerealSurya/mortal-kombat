@@ -39,6 +39,7 @@ public:
     int16_t getX() const { return x; }
     int16_t getY() const { return y; }
     CharacterState getState() const { return state; }
+    int16_t getHealth() const { return health; }
 
 private:
     int16_t x, y;
