@@ -45,8 +45,8 @@ uint32_t Random(uint32_t n){
 }
 
 SlidePot Sensor(1500,0); // copy calibration from Lab 7
-int16_t startX = 50;
-int16_t startY = 50;
+int16_t startX = 0;
+int16_t startY = 0;
 
 Character Player1(startX, startY, CHAR1_SPRITES);
 Character Player2(startX, startY, CHAR1_SPRITES);
