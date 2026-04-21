@@ -1,0 +1,97 @@
+#include "./inc/Character.h"
+#include "./inc/ST7735.h"
+#include "./inc/sprite_data.h"
+
+Character::Character(int16_t startX, int16_t startY, const SpriteSet& sprites)
+    : x(startX), y(startY),
+      prevX(startX), prevY(startY),
+      state(CharacterState::IDLE),
+      facing(Direction::RIGHT),
+      actionTimer(0),
+      currentSprite(sprites.idle),
+      prevSprite(sprites.idle),
+      spriteIdle(sprites.idle),
+      spritePunch(sprites.punch),
+      spriteKick(sprites.kick),
+      spriteDodge(sprites.dodge)
+{}
+
+// New function to move in X direction
+void Character::moveX(int16_t amount) {
+    x += amount;
+
+    // Update facing direction based on movement sign
+    if (amount > 0) facing = Direction::RIGHT;
+    else if (amount < 0) facing = Direction::LEFT;
+}
+
+// New function to move in Y direction
+void Character::moveY(int16_t amount) {
+    y += amount;
+}
+
+// Removed deltaX as requested
+void Character::update(CharacterState requestedState) {
+    // Only accept a new action if we are currently IDLE.
+    if (state == CharacterState::IDLE) {
+        if (requestedState != CharacterState::IDLE)
+        {
+            state = requestedState;
+            actionTimer = FRAME_HOLD_TICKS;
+        }
+    }
+    else
+    {
+        // Tick down the action timer, return to idle when done
+        if (actionTimer > 0) {
+            actionTimer--;
+        }
+        if (actionTimer == 0) {
+            state = CharacterState::IDLE;
+        }
+    }
+
+    // Clamp position to screen bounds (using the width/height from our SPRITE_ARRAY struct)
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    if (x > ST7735_TFTWIDTH  - currentSprite->WIDTH)  x = ST7735_TFTWIDTH  - currentSprite->WIDTH;
+    if (y > ST7735_TFTHEIGHT - currentSprite->HEIGHT) y = ST7735_TFTHEIGHT - currentSprite->HEIGHT;
+
+    selectSprite();
+}
+
+void Character::selectSprite() {
+    prevSprite = currentSprite; 
+    switch (state) {
+        case CharacterState::PUNCH: currentSprite = spritePunch; break;
+        case CharacterState::KICK:  currentSprite = spriteKick;  break;
+        case CharacterState::DODGE: currentSprite = spriteDodge; break;
+        case CharacterState::IDLE:
+        default:                    currentSprite = spriteIdle;  break;
+    }
+}
+
+void Character::draw() {
+    // Always erase the last rendered position unconditionally
+    ST7735_FillRect(prevX, prevY, prevSprite->WIDTH, prevSprite->HEIGHT, ST7735_BLACK);
+    //ST7735_DrawBitmap(prevX, prevY, 0x0000, prevSprite->WIDTH, prevSprite->HEIGHT);
+    // Draw the current sprite at the current position
+    blitSprite(x, y, currentSprite, true, SPRITE_TRANSPARENT_COLOR);
+
+    // Now update prev to match what we just drew
+    prevX      = x;
+    prevY      = y;
+    prevSprite = currentSprite;
+}
+
+void Character::blitSprite(int16_t drawX, int16_t drawY, const SPRITE_ARRAY* sprite, bool transparent, uint16_t transparentColor) {
+    // Ensure you are using the correct member names from your SPRITE_ARRAY struct (e.g., .data vs .arr)
+    ST7735_DrawBitmap(drawX, drawY + sprite->HEIGHT - 1, sprite->arr, sprite->WIDTH, sprite->HEIGHT);
+}
+
+void Character::setPosition(int16_t newX, int16_t newY) {
+    prevX = x;
+    prevY = y;
+    x     = newX;
+    y     = newY;
+}

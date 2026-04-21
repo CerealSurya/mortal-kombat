@@ -19,9 +19,13 @@
 #include "./inc/Switch.h"
 #include "./inc/Sound.h"
 #include "images/images.h"
+#include "./inc/Character.h"
+#include "./inc/sprite_data.h"
+
 extern "C" void __disable_irq(void);
 extern "C" void __enable_irq(void);
 extern "C" void TIMG12_IRQHandler(void);
+
 // ****note to ECE319K students****
 // the data sheet says the ADC does not work when clock is 80 MHz
 // however, the ADC seems to work on my boards at 80 MHz
@@ -41,7 +45,12 @@ uint32_t Random(uint32_t n){
 }
 
 SlidePot Sensor(1500,0); // copy calibration from Lab 7
+int16_t startX = 50;
+int16_t startY = 50;
 
+Character Player1(startX, startY, CHAR1_SPRITES);
+Character Player2(startX, startY, CHAR1_SPRITES);
+bool drawScreen = false
 // games  engine runs at 30Hz
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
@@ -53,6 +62,7 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     // 3) move sprites
     // 4) start sounds
     // 5) set semaphore
+    drawScreen = true;
     // NO LCD OUTPUT IN INTERRUPT SERVICE ROUTINES
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
   }
@@ -82,7 +92,7 @@ const char *Phrases[3][4]={
   {Language_English,Language_Spanish,Language_Portuguese,Language_French}
 };
 // use main1 to observe special characters
-int main(void){ // main1
+int main1(void){ // main1
     char l;
   __disable_irq();
   PLL_Init(); // set bus speed
@@ -117,37 +127,52 @@ int main(void){ // main1
 }
 
 // use main2 to observe graphics
-int main2(void){ // main2
+int main(void){ // main2
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
   ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
   ST7735_FillScreen(ST7735_BLACK);
-  ST7735_DrawBitmap(22, 159, PlayerShip0, 18,8); // player ship bottom
-  ST7735_DrawBitmap(53, 151, Bunker0, 18,5);
-  ST7735_DrawBitmap(42, 159, PlayerShip1, 18,8); // player ship bottom
-  ST7735_DrawBitmap(62, 159, PlayerShip2, 18,8); // player ship bottom
-  ST7735_DrawBitmap(82, 159, PlayerShip3, 18,8); // player ship bottom
-  ST7735_DrawBitmap(0, 9, SmallEnemy10pointA, 16,10);
-  ST7735_DrawBitmap(20,9, SmallEnemy10pointB, 16,10);
-  ST7735_DrawBitmap(40, 9, SmallEnemy20pointA, 16,10);
-  ST7735_DrawBitmap(60, 9, SmallEnemy20pointB, 16,10);
-  ST7735_DrawBitmap(80, 9, SmallEnemy30pointA, 16,10);
+  Player1.draw();
+  // ST7735_DrawBitmap(22, 159, PlayerShip0, 18,8); // player ship bottom
+  // ST7735_DrawBitmap(53, 151, Bunker0, 18,5);
+  // ST7735_DrawBitmap(42, 159, PlayerShip1, 18,8); // player ship bottom
+  // ST7735_DrawBitmap(62, 159, PlayerShip2, 18,8); // player ship bottom
+  // ST7735_DrawBitmap(82, 159, PlayerShip3, 18,8); // player ship bottom
+  // ST7735_DrawBitmap(0, 9, SmallEnemy10pointA, 16,10);
+  // ST7735_DrawBitmap(20,9, SmallEnemy10pointB, 16,10);
+  // ST7735_DrawBitmap(40, 9, SmallEnemy20pointA, 16,10);
+  // ST7735_DrawBitmap(60, 9, SmallEnemy20pointB, 16,10);
+  // ST7735_DrawBitmap(80, 9, SmallEnemy30pointA, 16,10);
 
-  for(uint32_t t=500;t>0;t=t-5){
-    SmallFont_OutVertical(t,104,6); // top left
-    Clock_Delay1ms(50);              // delay 50 msec
-  }
-  ST7735_FillScreen(0x0000);   // set screen to black
-  ST7735_SetCursor(1, 1);
-  ST7735_OutString((char *)"GAME OVER");
-  ST7735_SetCursor(1, 2);
-  ST7735_OutString((char *)"Nice try,");
-  ST7735_SetCursor(1, 3);
-  ST7735_OutString((char *)"Earthling!");
-  ST7735_SetCursor(2, 4);
-  ST7735_OutUDec(1234);
-  while(1){
+  // for(uint32_t t=500;t>0;t=t-5){
+  //   SmallFont_OutVertical(t,104,6); // top left
+  //   Clock_Delay1ms(50);              // delay 50 msec
+  // }
+  // ST7735_FillScreen(0x0000);   // set screen to black
+  // ST7735_SetCursor(1, 1);
+  // ST7735_OutString((char *)"GAME OVER");
+  // ST7735_SetCursor(1, 2);
+  // ST7735_OutString((char *)"Nice try,");
+  // ST7735_SetCursor(1, 3);
+  // ST7735_OutString((char *)"Earthling!");
+  // ST7735_SetCursor(2, 4);
+  // ST7735_OutUDec(1234);
+  Clock_Delay1ms(1000);
+  Player1.update(CharacterState::PUNCH);
+  Player1.draw();
+
+  Clock_Delay1ms(1000);
+  Player1.update(CharacterState::KICK);
+  Player1.draw();
+
+  Clock_Delay1ms(1000);
+  Player1.update(CharacterState::DODGE);
+  Player1.draw();
+  while(1)
+  {
+    
+
   }
 }
 
