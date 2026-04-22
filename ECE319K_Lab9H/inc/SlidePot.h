@@ -20,7 +20,7 @@ private:
   uint32_t offset;
 public:
   SlidePot(uint32_t m, uint32_t b); // initialize slide pot
-  void Init(void);
+  void Init(int channel);
   uint32_t In(void);                // return last ADC sample value (0 to 4095)
   void Save(uint32_t n);            // save ADC, set semaphore
   void Sync(void);                  // wait for semaphore

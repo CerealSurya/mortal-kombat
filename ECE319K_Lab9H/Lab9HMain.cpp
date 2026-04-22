@@ -30,6 +30,23 @@ extern "C" void TIMG12_IRQHandler(void);
 // the data sheet says the ADC does not work when clock is 80 MHz
 // however, the ADC seems to work on my boards at 80 MHz
 // I suggest you try 80MHz, but if it doesn't work, switch to 40MHz
+
+
+/*
+Pin assignments
+Player 1
+Slidepot: PB17
+Punch: PA27
+Block: PA28
+Kick: PA17
+
+Player 2
+Slidepot: PB18
+Punch: 
+Kick: 
+Block: 
+*/
+
 void PLL_Init(void){ // set phase lock loop (PLL)
   // Clock_Init40MHz(); // run this line for 40MHz
   Clock_Init80MHz(0);   // run this line for 80MHz
@@ -43,7 +60,8 @@ uint32_t Random(uint32_t n){
   return (Random32()>>16)%n;
 }
 
-SlidePot Sensor(1500,0); // copy calibration from Lab 7
+SlidePot Sensor1(1667,337); // copy calibration from Lab 7
+SlidePot Sensor2(1667, 337);
 int16_t startX = 20;
 int16_t startY = 0; //Put in bottom left
 
@@ -77,12 +95,22 @@ void updateHealth(void)
 }
 
 bool drawScreen = false;
+uint32_t Data1, Data2;
 // games  engine runs at 30Hz
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
 // game engine goes here
+    Data1 = Sensor1.In();
+    Data2 = Sensor2.In();
+    Sensor1.Save(Data1);
+    Sensor2.Save(Data2);
+    //printf("Slidepot 1: %d\n", Data1);
+    printf("Slidepot 2: %d\n", Data2);
+    printf("Switch data: %u", Switch_In());
+
+
     // 1) sample slide pot
     // 2) read input switches
     // 3) move sprites
@@ -153,7 +181,7 @@ int main1(void){ // main1
 }
 
 // use main2 to observe graphics
-int main(void){ // main2
+int main2(void){ // main2
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
@@ -174,14 +202,20 @@ int main(void){ // main2
 }
 
 // use main3 to test switches and LEDs
-int main3(void){ // main3
+int main(void){ // main3
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
   Switch_Init(); // initialize switches
   LED_Init(); // initialize LED
+  TimerG12_IntArm(2666667, 0);
+  Sensor1.Init(5);
+  Sensor2.Init(4);
+  __enable_irq();
   while(1){
     // write code to test switches and LEDs
+    Sensor1.Sync();
+    Sensor2.Sync();
 
   }
 }
@@ -219,7 +253,7 @@ int main5(void){ // final main
   LaunchPad_Init();
   ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
   ST7735_FillScreen(ST7735_BLACK);
-  Sensor.Init(); // PB18 = ADC1 channel 5, slidepot
+  Sensor1.Init(5); // PB18 = ADC1 channel 5, slidepot
   Switch_Init(); // initialize switches
   LED_Init();    // initialize LED
   Sound_Init();  // initialize sound

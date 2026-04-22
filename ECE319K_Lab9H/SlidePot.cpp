@@ -10,7 +10,7 @@
 #define ADCVREF_INT  0x200
 
 
-void SlidePot::Init(void){
+void SlidePot::Init(int channel){
 // write code to initialize ADC1 channel 5, PB18
 // Your measurement will be connected to PB18
 // 12-bit mode, 0 to 3.3V, right justified
@@ -24,7 +24,7 @@ void SlidePot::Init(void){
   ADC1->ULLMEM.CTL0 = 0x03010000;         // 6) divide by 8
   ADC1->ULLMEM.CTL1 = 0x00000000;         // 7) mode
   ADC1->ULLMEM.CTL2 = 0x00000000;         // 8) MEMRES
-  ADC1->ULLMEM.MEMCTL[0] = 5;             // 9) channel 5 is PB18
+  ADC1->ULLMEM.MEMCTL[0] = channel;             // 9) channel 5 is PB18
   ADC1->ULLMEM.SCOMP0 = 0;                // 10) 8 sample clocks
   ADC1->ULLMEM.CPU_INT.IMASK = 0;         // 11) no interrupt
 }
@@ -47,8 +47,8 @@ SlidePot::SlidePot(uint32_t m, uint32_t b)
 { 
   slope = m;
   offset = b;
-  flag = 0;
-  Init();
+  //flag = 0;
+  //Init();
 }
 
 void SlidePot::Save(uint32_t n)
@@ -69,7 +69,7 @@ float SlidePot::FloatConvert(uint32_t input)
 
 void SlidePot::Sync(void)
 {
-  while(!flag);
+  while(flag==0){};
   flag = 0;
 }
 
