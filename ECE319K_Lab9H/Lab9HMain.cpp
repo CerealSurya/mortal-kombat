@@ -36,15 +36,16 @@ extern "C" void TIMG12_IRQHandler(void);
 Pin assignments
 Player 1
 Slidepot: PB17
+Punch: PA8
+Kick: PA24
+Block: PA18 
+
+Player 2
+Slidepot: PB18
 Punch: PA27
 Block: PA28
 Kick: PA17
 
-Player 2
-Slidepot: PB18
-Punch: 
-Kick: 
-Block: 
 */
 
 void PLL_Init(void){ // set phase lock loop (PLL)
@@ -70,6 +71,8 @@ Character Player1(startX, startY, CHAR1_SPRITES);
 int16_t x = 20;
 int16_t y = 160 - CHAR2_SPRITES.idle->WIDTH;
 Character Player2(x, y, CHAR2_SPRITES); //Put in bottom right
+CharacterState p1State = CharacterState::IDLE;
+CharacterState p2State = CharacterState::IDLE;
 
 void initScreen(void)
 {
@@ -96,22 +99,39 @@ void updateHealth(void)
 
 bool drawScreen = false;
 uint32_t Data1, Data2;
+int16_t pos1, pos2;
 // games  engine runs at 30Hz
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
 // game engine goes here
-    //Data1 = Sensor1.In();
-    //Data2 = Sensor2.In();
-    //Sensor1.Save(Data1);
-    //Sensor2.Save(Data2);
-    //printf("Slidepot 1: %d\n", Data1);
     Data2=Sensor2.SlidePot_Running();
     Data1 = Sensor1.SlidePot_Running();
-    printf("Slidepot 1: %d\n", Data1);
-    printf("Slidepot 2: %d\n", Data2);
-    //printf("Switch data: %u", Switch_In());
+    pos2 = (Data2 * (160 - 18)) / 4095;
+    pos1 = 128-(Data1 * (160 - 32)) / 4095;
+ 
+    uint32_t sw = Switch_In();
+
+    // Player 1 — active low so 0 = pressed
+    bool p1Punch = (sw & 0x01);  // PA8
+    bool p1Kick  = (sw & 0x02);  // PA24
+    bool p1Block = (sw & 0x04);  // PA18
+
+    // Player 2 — active high so 1 = pressed
+    bool p2Punch = (sw & 0x08);  // PA27
+    bool p2Block = (sw & 0x10);  // PA28
+    bool p2Kick  = (sw & 0x20);  // PA17
+
+    if(p1Kick)       p1State = CharacterState::KICK;
+    else if(p1Punch) p1State = CharacterState::PUNCH;
+    else if(p1Block) p1State = CharacterState::DODGE;
+    else             p1State = CharacterState::IDLE;
+
+    if(p2Kick)       p2State = CharacterState::KICK;
+    else if(p2Punch) p2State = CharacterState::PUNCH;
+    else if(p2Block) p2State = CharacterState::DODGE;
+    else             p2State = CharacterState::IDLE;
 
 
     // 1) sample slide pot
@@ -184,10 +204,12 @@ int main1(void){ // main1
 }
 
 // use main2 to observe graphics
-int main2(void){ // main2
+int main(void){ // main2
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
+  Sensor1.Init(5);
+  Sensor2.Init(4);
   initScreen();
   Switch_Init();
   TimerG12_IntArm(2666667, 0);
@@ -196,19 +218,29 @@ int main2(void){ // main2
   Player2.draw();
   while(1)
   {
-    if (Player1.checkHit(Player2.getX(), Player2.getY()))
+    /*if (Player1.checkHit(Player2.getX(), Player2.getY()))
     {continue;} //Cat stops moving once it hits the other dude
     Player2.moveX(-10);
     Player2.draw();
     Player2.takeDmg(CharacterState::KICK);
     Player1.takeDmg(CharacterState::KICK);
-    updateHealth();
-    Clock_Delay1ms(1000);
+    updateHealth();*/
+    if(drawScreen) {
+        drawScreen = false;
+        Player1.setPosition(Player1.getX(), pos1);  // keep X, update Y
+        Player2.setPosition(Player2.getX(), pos2);
+        Player1.update(p1State);
+        Player2.update(p2State);
+        Player1.draw();
+        Player2.draw();
+    }
+    Clock_Delay1ms(16);
+
   }
 }
 
 // use main3 to test switches and LEDs
-int main(void){ // main3
+int main3(void){ // main3
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();

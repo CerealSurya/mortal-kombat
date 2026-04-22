@@ -28,6 +28,7 @@ public:
     // bgColor is the background fill color used to erase the previous frame.
     void draw();
     
+    
     void setPosition(int16_t x, int16_t y);
 
     bool takeDmg(CharacterState attack);

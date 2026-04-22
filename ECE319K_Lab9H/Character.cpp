@@ -150,3 +150,9 @@ void Character::setPosition(int16_t newX, int16_t newY)
     x     = newX;
     y     = newY;
 }
+/*int16_t Character::getX(){
+    return x;
+}
+int16_t Character::getY(){
+    return y;
+}*/
