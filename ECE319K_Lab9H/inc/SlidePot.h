@@ -18,12 +18,18 @@ private:
 // distance = (slope*data+offset)/4096
   uint32_t slope;    // calibration coeffients
   uint32_t offset;
+    static const int N = 8;
+  uint32_t buffer[N];
+  int bufIndex;
+  bool bufFull;
+  int channel;
 public:
   SlidePot(uint32_t m, uint32_t b); // initialize slide pot
   void Init(int channel);
   uint32_t In(void);                // return last ADC sample value (0 to 4095)
   void Save(uint32_t n);            // save ADC, set semaphore
-  void Sync(void);                  // wait for semaphore
+  void Sync(void); 
+  uint32_t SlidePot_Running(void);                 // wait for semaphore
   uint32_t Convert(uint32_t n);     // convert ADC to raw sample
   float FloatConvert(uint32_t n);   // do not use this function
   uint32_t Distance(void);          // return last distance value (0 to 2000), 0.001cm

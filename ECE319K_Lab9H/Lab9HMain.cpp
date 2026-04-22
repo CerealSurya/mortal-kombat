@@ -102,13 +102,16 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
 // game engine goes here
-    Data1 = Sensor1.In();
-    Data2 = Sensor2.In();
-    Sensor1.Save(Data1);
-    Sensor2.Save(Data2);
+    //Data1 = Sensor1.In();
+    //Data2 = Sensor2.In();
+    //Sensor1.Save(Data1);
+    //Sensor2.Save(Data2);
     //printf("Slidepot 1: %d\n", Data1);
+    Data2=Sensor2.SlidePot_Running();
+    Data1 = Sensor1.SlidePot_Running();
+    printf("Slidepot 1: %d\n", Data1);
     printf("Slidepot 2: %d\n", Data2);
-    printf("Switch data: %u", Switch_In());
+    //printf("Switch data: %u", Switch_In());
 
 
     // 1) sample slide pot
@@ -186,6 +189,9 @@ int main2(void){ // main2
   PLL_Init(); // set bus speed
   LaunchPad_Init();
   initScreen();
+  Switch_Init();
+  TimerG12_IntArm(2666667, 0);
+  __enable_irq();
   Player1.draw();
   Player2.draw();
   while(1)
@@ -211,6 +217,7 @@ int main(void){ // main3
   TimerG12_IntArm(2666667, 0);
   Sensor1.Init(5);
   Sensor2.Init(4);
+  //Player1.draw();
   __enable_irq();
   while(1){
     // write code to test switches and LEDs

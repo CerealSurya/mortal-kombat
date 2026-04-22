@@ -10,12 +10,13 @@
 #define ADCVREF_INT  0x200
 
 
-void SlidePot::Init(int channel){
+
+void SlidePot::Init(int ch){
 // write code to initialize ADC1 channel 5, PB18
 // Your measurement will be connected to PB18
 // 12-bit mode, 0 to 3.3V, right justified
 // software trigger, no averaging
-  
+  channel = ch;
   ADC1->ULLMEM.GPRCM.RSTCTL = 0xB1000003; // 1) reset
   ADC1->ULLMEM.GPRCM.PWREN = 0x26000001;  // 2) activate
   Clock_Delay(24);                        // 3) wait
@@ -33,6 +34,8 @@ uint32_t SlidePot::In(void)
 {
   // write code to sample ADC1 channel 5, PB18 once
   // return digital result (0 to 4095)
+  ADC1->ULLMEM.MEMCTL[0] = this->channel;      // set correct channel first
+
   ADC1->ULLMEM.CTL0 |= 0x00000001;             // 1) enable conversions
   ADC1->ULLMEM.CTL1 |= 0x00000100;             // 2) start ADC
   uint32_t volatile delay=ADC1->ULLMEM.STATUS; // 3) time to let ADC start
@@ -47,6 +50,9 @@ SlidePot::SlidePot(uint32_t m, uint32_t b)
 { 
   slope = m;
   offset = b;
+  bufIndex = 0;
+  bufFull = false;
+  for(int i = 0; i < N; i++) buffer[i] = 0;
   //flag = 0;
   //Init();
 }
@@ -65,6 +71,16 @@ uint32_t SlidePot::Convert(uint32_t n)
 float SlidePot::FloatConvert(uint32_t input)
 {
   return 0.356*input + 323.095;
+}
+uint32_t SlidePot::SlidePot_Running(void) {
+    buffer[bufIndex] = In();           // take fresh ADC sample
+    bufIndex = (bufIndex + 1) % N;
+    if(bufIndex == 0) bufFull = true;
+
+    int count = bufFull ? N : bufIndex;
+    uint32_t sum = 0;
+    for(int i = 0; i < count; i++) sum += buffer[i];
+    return sum / count;
 }
 
 void SlidePot::Sync(void)

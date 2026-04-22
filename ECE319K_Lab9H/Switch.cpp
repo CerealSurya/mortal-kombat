@@ -15,7 +15,10 @@ void Switch_Init(void){
   IOMUX->SECCFG.PINCM[PA17INDEX] = 0x00050081; // input, pull down
 
   //Player 2
-  IOMUX->SECCFG.PINCM[PA15INDEX] = 0x00050081; // input, pull down
+  IOMUX->SECCFG.PINCM[PA8INDEX] = 0x00050081; // input, pull down
+  IOMUX->SECCFG.PINCM[PA18INDEX] = 0x00050081; // input, pull down
+  IOMUX->SECCFG.PINCM[PA24INDEX] = 0x00050081; // input, pull down
+
 }
 // return current state of switches
 uint32_t Switch_In(void){

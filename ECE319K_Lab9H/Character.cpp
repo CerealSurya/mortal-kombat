@@ -118,7 +118,7 @@ void Character::selectSprite()
         case CharacterState::PUNCH: currentSprite = spritePunch; break;
         case CharacterState::KICK:  currentSprite = spriteKick;  break;
         case CharacterState::DODGE: currentSprite = spriteDodge; break;
-        case CharacterState::IDLE:
+        case CharacterState::IDLE:  currentSprite = spriteIdle;  break;
         default:                    currentSprite = spriteIdle;  break;
     }
 }
