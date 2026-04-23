@@ -212,7 +212,7 @@ int main(void){ // main2
   Sensor2.Init(4);
   initScreen();
   Switch_Init();
-  TimerG12_IntArm(2666667, 0);
+  TimerG12_IntArm(5333333, 0);
   __enable_irq();
   Player1.draw();
   Player2.draw();
@@ -226,15 +226,28 @@ int main(void){ // main2
     Player1.takeDmg(CharacterState::KICK);
     updateHealth();*/
     if(drawScreen) {
-        drawScreen = false;
-        Player1.setPosition(Player1.getX(), pos1);  // keep X, update Y
-        Player2.setPosition(Player2.getX(), pos2);
-        Player1.update(p1State);
-        Player2.update(p2State);
-        Player1.draw();
-        Player2.draw();
+      drawScreen = false;
+
+      int16_t oldPos1 = Player1.getY();
+      int16_t oldPos2 = Player2.getY();
+      CharacterState oldState1 = p1State;
+      CharacterState oldState2 = p2State;
+
+      Player1.setPosition(Player1.getX(), pos1);
+      Player2.setPosition(Player2.getX(), pos2);
+      Player1.update(p1State);
+      Player2.update(p2State);
+
+      bool p1Changed = (Player1.getY() != oldPos1 || p1State != oldState1);
+      bool p2Changed = (Player2.getY() != oldPos2 || p2State != oldState2);
+
+      // only erase/redraw what actually changed
+      if(p1Changed) Player1.draw();
+      if(p2Changed) Player2.draw();
+      //if(p1Changed) Player1.redraw();
+      //if(p2Changed) Player2.redraw();
     }
-    Clock_Delay1ms(16);
+    //Clock_Delay1ms(1);
 
   }
 }

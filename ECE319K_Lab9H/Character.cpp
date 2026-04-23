@@ -37,6 +37,17 @@ bool Character::takeDmg(CharacterState attack)
     }
     return 1;
 }
+void Character::erase(){
+    ST7735_FillRect(prevX, prevY, prevSprite->WIDTH, prevSprite->HEIGHT, ST7735_BLACK);
+}
+
+void Character::redraw(){
+    selectSprite();
+    blitSprite(x, y, currentSprite, true, SPRITE_TRANSPARENT_COLOR);
+    prevX = x;
+    prevY = y;
+    prevSprite = currentSprite;
+}
 
 bool Character::checkHit(int16_t eX, int16_t eY)
 {

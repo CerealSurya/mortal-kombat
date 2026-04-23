@@ -27,6 +27,8 @@ public:
     // Erases old position and draws new sprite.
     // bgColor is the background fill color used to erase the previous frame.
     void draw();
+    void erase();
+    void redraw();
     
     
     void setPosition(int16_t x, int16_t y);
