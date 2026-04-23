@@ -951,3 +951,11 @@ const SpriteSet CHAR2_SPRITES = {
     &CHAR2_KICK,
     &CHAR2_DODGE
 };
+
+// Placeholder — replace CHAR1 refs with CHAR3 data once the third sprite is imported
+const SpriteSet CHAR3_SPRITES = {
+    &CHAR1_IDLE,
+    &CHAR1_PUNCH,
+    &CHAR1_KICK,
+    &CHAR1_DODGE
+};
