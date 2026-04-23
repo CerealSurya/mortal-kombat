@@ -272,15 +272,27 @@ int main(void){ // main2
     Player2.takeDmg(CharacterState::KICK);
     Player1.takeDmg(CharacterState::KICK);
     updateHealth();*/
-    if(drawScreen && fighting)
-    {
-        drawScreen = false;
-        Player1.setPosition(Player1.getX(), pos1);  // keep X, update Y
-        Player2.setPosition(Player2.getX(), pos2);
-        Player1.update(p1State);
-        Player2.update(p2State);
-        Player1.draw();
-        Player2.draw();
+    if(drawScreen) {
+      drawScreen = false;
+
+      // int16_t oldPos1 = Player1.getY();
+      // int16_t oldPos2 = Player2.getY();
+      // CharacterState oldState1 = p1State;
+      // CharacterState oldState2 = p2State;
+
+      Player1.setPosition(Player1.getX(), pos1);
+      Player2.setPosition(Player2.getX(), pos2);
+      Player1.update(p1State);
+      Player2.update(p2State);
+
+      // bool p1Changed = (Player1.getY() != oldPos1 || p1State != oldState1);
+      // bool p2Changed = (Player2.getY() != oldPos2 || p2State != oldState2);
+
+      // only erase/redraw what actually changed
+      if(1) Player1.draw();
+      if(1) Player2.draw();
+      //if(p1Changed) Player1.redraw();
+      //if(p2Changed) Player2.redraw();
     }
     if (Player1.getHealth() == 0 || Player2.getHealth() == 0)
     {
@@ -288,7 +300,7 @@ int main(void){ // main2
       deathScreen();
       Clock_Delay1ms(1000);
     }
-    Clock_Delay1ms(16);
+    //Clock_Delay1ms(16);
 
   }
 }
