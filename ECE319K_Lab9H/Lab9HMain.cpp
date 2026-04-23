@@ -21,6 +21,7 @@
 #include "images/images.h"
 #include "./inc/Character.h"
 #include "./inc/sprite_data.h"
+#include "sounds/sounds.h"
 
 extern "C" void __disable_irq(void);
 extern "C" void __enable_irq(void);
@@ -69,19 +70,11 @@ static void drawStr(int16_t startX, int16_t y, const char *s,
 void drawStrCentered(int16_t x, int16_t y, const char *s, int16_t color, uint8_t size) {
     uint32_t len = 0;
     const char *p = s;
-    
-    // Count characters (embedded way: manually or use strlen)
     while(*p++) len++; 
-    
-    // Calculate width: Each char is 6px wide (including 1px spacing) at size 1
     int16_t totalWidth = len * 6 * size;
-    
-    // Calculate centered X
     int16_t centerX = (160 - totalWidth) / 2;
-    
-    // Fallback to prevent negative X if string is too long
     if(centerX < 0) centerX = 0;
-    
+
     drawStr(centerX, y, s, color, size);
 }
 
@@ -123,6 +116,8 @@ typedef enum {
     STR_PLAYER2,
     STR_BEST3,
     STR_WINNER,
+    STR_SELECTCHAR,
+    STR_READY,
     NUM_PHRASES
 } Phrase_t;
 
@@ -137,13 +132,12 @@ const char* const Phrases[NUM_PHRASES][NUM_LANGUAGES] = {
     [STR_PLAYER1] = {"PLAYER 1", "JUGADOR 1"},
     [STR_PLAYER2] = {"PLAYER 2", "JUGADOR 2"},
     [STR_BEST3]     = {"BEST OF 3", "LO MEJOR DE 3"},
+    [STR_SELECTCHAR] = {"SELECT CHARACTER","SELECCIONAR PERSONAJE"},
+    [STR_READY] = {"READY", "LISTA"},
     [STR_WINNER]    = {"WINS!", "\xADGANA!"}
 };
 
-// ── Character select constants ────────────────────────────────
-// Layout in rotation 0 (portrait API = physical landscape display):
-//   x axis = physical vertical (0..127), y axis = physical horizontal (0..159)
-//   Three slots spread horizontally along y axis.
+// ── Character select constants 
 static const int16_t SEL_SX     = 28;              // x top-edge of all slot boxes
 static const int16_t SEL_SY[3]  = {5, 62, 119};   // y left-edge of each slot box
 static const int16_t SEL_SZ     = 36;              // box outer size (32×32 sprite inside 2px border)
@@ -155,14 +149,13 @@ static const SpriteSet* const CHAR_OPTIONS[3] = {
 // Draw a 2-px border box for one slot in the given color (rotation 0 coords).
 static void drawSlotBorder(uint8_t slot, uint16_t color) {
     int16_t sx = SEL_SX, sy = SEL_SY[slot], sz = SEL_SZ;
-    ST7735_FillRect(sx,        sy,        2,  sz, color);  // physical top edge
-    ST7735_FillRect(sx+sz-2,   sy,        2,  sz, color);  // physical bottom edge
-    ST7735_FillRect(sx+2,      sy,        sz-4, 2, color); // physical left edge
-    ST7735_FillRect(sx+2,      sy+sz-2,   sz-4, 2, color); // physical right edge
+    ST7735_FillRect(sx,        sy,        2,  sz, color);
+    ST7735_FillRect(sx+sz-2,   sy,        2,  sz, color);
+    ST7735_FillRect(sx+2,      sy,        sz-4, 2, color);
+    ST7735_FillRect(sx+2,      sy+sz-2,   sz-4, 2, color);
 }
 
 // Redraw all three slot borders to reflect current selections.
-// P1 blue always on top; if same slot P1 outer, P2 inner.
 static void refreshSlotBorders(uint8_t p1Sel, uint8_t p2Sel) {
     for (uint8_t i = 0; i < 3; i++) drawSlotBorder(i, 0x4228);  // default dim grey
     drawSlotBorder(p2Sel, ST7735_RED);
@@ -170,22 +163,28 @@ static void refreshSlotBorders(uint8_t p1Sel, uint8_t p2Sel) {
 }
 
 // Show character select screen; blocks until both players pick.
-// Applies chosen SpriteSet to Player1/Player2 before returning.
 void charSelectScreen(void) {
-    // Stay in rotation 0 — ST7735_DrawBitmap is portrait-only and ignores SetRotation.
-    // Physical landscape: x=physical-vertical (0..127), y=physical-horizontal (0..159).
     ST7735_SetRotation(0);
     ST7735_FillScreen(ST7735_BLACK);
-
-    // Draw each slot: sprite + name (slots spread horizontally along y axis)
     for (uint8_t i = 0; i < 3; i++) {
         const SPRITE_ARRAY* spr = CHAR_OPTIONS[i]->idle;
-        // Sprite bottom-left in DrawBitmap coords: (SEL_SX+2, SEL_SY[i]+2+HEIGHT-1)
         ST7735_DrawBitmap(SEL_SX+2, SEL_SY[i]+2 + spr->HEIGHT - 1,
                           spr->arr, spr->WIDTH, spr->HEIGHT);
-        // Character name to the right of box (higher x = physically lower)
-        drawStr(SEL_SX + SEL_SZ + 4, SEL_SY[i] + 4, CHAR_NAMES[i], 0x8410, 1);
     }
+
+    //Horizontal text in rotation 1
+    ST7735_SetRotation(1);
+
+    // Title bar
+    drawStrCentered(32, 2, Phrases[STR_SELECTCHAR][currentLanguage], ST7735_WHITE, 1);
+    ST7735_FillRect(10, 12, 140, 1, 0x4228);
+    for (uint8_t i = 0; i < 3; i++) {
+        drawStr(SEL_SY[i], 50, CHAR_NAMES[i], 0x8410, 1);
+    }
+
+    // Control hints
+    drawStr(10, 30, "BLK:CYCLE  KICK:SELECT", 0x4228, 1);
+    ST7735_SetRotation(0);
 
     // Initial cursor positions: P1 on slot 0, P2 on slot 1
     uint8_t p1Sel = 0, p2Sel = 1;
@@ -195,36 +194,32 @@ void charSelectScreen(void) {
     uint32_t prevSw = Switch_In();
 
     while (!p1Confirmed || !p2Confirmed) {
-        Clock_Delay1ms(40);   // ~25 Hz poll, debounce
-        uint32_t sw    = Switch_In();
+        Clock_Delay1ms(40);
+        uint32_t sw     = Switch_In();
         uint32_t rising = sw & ~prevSw;
         prevSw = sw;
 
         bool needRedraw = false;
 
-        // ── Player 1 ──────────────────────────────────────────
+        //Player 1
         if (!p1Confirmed) {
-            if (rising & 0x04) {          // P1 Block → cycle
-                p1Sel = (p1Sel + 1) % 3;
-                needRedraw = true;
-            }
-            if (rising & 0x02) {          // P1 Kick → confirm
-                p1Confirmed = true;
-                needRedraw = true;
-                drawStr(SEL_SX + SEL_SZ + 14, SEL_SY[p1Sel] + 4, "READY", ST7735_BLUE, 1);
+            if (rising & 0x04) { p1Sel = (p1Sel + 1) % 3; needRedraw = true; }
+            if (rising & 0x02) {
+                p1Confirmed = true; needRedraw = true;
+                ST7735_SetRotation(1);
+                drawStr(SEL_SY[p1Sel], SEL_SX + SEL_SZ + 30, Phrases[STR_READY][currentLanguage], ST7735_BLUE, 1);
+                ST7735_SetRotation(0);
             }
         }
 
-        // ── Player 2 ──────────────────────────────────────────
+        //Player 2
         if (!p2Confirmed) {
-            if (rising & 0x10) {          // P2 Block → cycle
-                p2Sel = (p2Sel + 1) % 3;
-                needRedraw = true;
-            }
-            if (rising & 0x20) {          // P2 Kick → confirm
-                p2Confirmed = true;
-                needRedraw = true;
-                drawStr(SEL_SX + SEL_SZ + 22, SEL_SY[p2Sel] + 4, "READY", ST7735_RED, 1);
+            if (rising & 0x10) { p2Sel = (p2Sel + 1) % 3; needRedraw = true; }
+            if (rising & 0x20) {
+                p2Confirmed = true; needRedraw = true;
+                ST7735_SetRotation(1);
+                drawStr(SEL_SY[p2Sel], SEL_SX + SEL_SZ + 39, Phrases[STR_READY][currentLanguage], ST7735_RED, 1);
+                ST7735_SetRotation(0);
             }
         }
 
@@ -239,27 +234,23 @@ void charSelectScreen(void) {
 
 void initStartScreen(void)
 {
-  ST7735_SetRotation(1);            // landscape: 160 wide x 128 tall
+  Sound_MusicStart(bgMusic,BG_MUSIC_LEN);
+
+  ST7735_SetRotation(1);
   ST7735_FillScreen(ST7735_BLACK);
 
   // Gold border bars
   ST7735_FillRect(0,   0, 160, 6, ST7735_YELLOW);
   ST7735_FillRect(0, 122, 160, 6, ST7735_YELLOW);
 
-  // "MORTAL" yellow, size 3 — 6 chars x 18px = 108px, centered: x=(160-108)/2=26
   drawStr(26, 14, "MORTAL", ST7735_YELLOW, 3);
-  // "KOMBAT" red, size 3 — same centering
   drawStr(26, 42, "KOMBAT", ST7735_RED,    3);
 
-  // Thin separator
   ST7735_FillRect(10, 72, 140, 2, ST7735_YELLOW);
 
-  // "BEST OF 3" — 9 chars x 6px = 54px, center x=(160-54)/2=53
   drawStrCentered(53, 77, Phrases[STR_BEST3][currentLanguage], ST7735_WHITE, 1);
 
-  // "PRESS ANY BUTTON" white, size 1 — 16 chars x 6px = 96px, centered: x=32
   drawStrCentered(32, 92, Phrases[STR_START][currentLanguage], ST7735_WHITE,  1);
-  // "TO FIGHT" yellow, size 1 — 8 chars x 6px = 48px, centered: x=56
   drawStrCentered(56, 104, Phrases[STR_FIGHT][currentLanguage],        ST7735_YELLOW, 1);
 }
 volatile bool drawScreen = false;
@@ -331,7 +322,6 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
       // 5) set semaphore
       drawScreen = true;
     }
-    // NO LCD OUTPUT IN INTERRUPT SERVICE ROUTINES
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
   }
 }
@@ -361,7 +351,6 @@ static void eraseDmgNum(int16_t py, int16_t amt) {
 }
 
 // Draws the current series score (e.g. "1-0") in the VS gap of the health panel.
-// Must be called while display is in portrait game mode.
 void drawScore(void) {
     char buf[4] = {(char)('0'+p1Wins), '-', (char)('0'+p2Wins), 0};
     ST7735_FillRect(100, 72, 28, 21, ST7735_BLACK);  // clear the VS gap area
@@ -372,22 +361,21 @@ void drawScore(void) {
 
 // Shows "ROUND N / FIGHT!" in landscape for 3 seconds, then returns.
 void roundScreen(uint8_t round) {
+    Sound_MusicStop();
+
     ST7735_SetRotation(1);
     ST7735_FillScreen(ST7735_BLACK);
 
     ST7735_FillRect(0,   0, 160, 6, ST7735_WHITE);
     ST7735_FillRect(0, 122, 160, 6, ST7735_WHITE);
 
-    // "ROUND" — 5 chars × 18px = 90px, center x=(160-90)/2=35
     drawStrCentered(35, 18, Phrases[STR_ROUND][currentLanguage], ST7735_WHITE, 3);
 
-    // Round digit — 1 char × 18px = 18px, center x=(160-18)/2=71
     char rnum[2] = {(char)('0' + round), 0};
     drawStr(71, 50, rnum, ST7735_YELLOW, 3);
 
     ST7735_FillRect(20, 80, 120, 2, 0x8410);
 
-    // "FIGHT!" — 6 chars × 12px = 72px, center x=(160-72)/2=44
     drawStrCentered(44, 88, Phrases[STR_FIGHT][currentLanguage], ST7735_RED, 2);
 
     Clock_Delay1ms(3000);
@@ -397,25 +385,21 @@ void roundScreen(uint8_t round) {
 
 void deathScreen(void)
 {
-  ST7735_SetRotation(1);            // landscape: 160 wide x 128 tall
+
+  ST7735_SetRotation(1); 
   ST7735_FillScreen(ST7735_BLACK);
 
   // Red border bars
   ST7735_FillRect(0,   0, 160, 6, ST7735_RED);
   ST7735_FillRect(0, 122, 160, 6, ST7735_RED);
-
-  // "GAME" red, size 3 — 4 chars x 18px = 72px, centered: x=(160-72)/2=44
   drawStrCentered(44, 12, Phrases[STR_GAME][currentLanguage], ST7735_RED, 2);
-  // "OVER" red, size 3 — same centering
   drawStrCentered(44, 40, Phrases[STR_OVER][currentLanguage], ST7735_RED, 2);
 
   // Thin separator
   ST7735_FillRect(10, 70, 140, 2, ST7735_RED);
 
-  // "PLAYER 1" or "PLAYER 2" yellow, size 2 — 8 chars x 12px = 96px, centered: x=32
   const char *who = (p1Wins >= 2) ? Phrases[STR_PLAYER1][currentLanguage] : Phrases[STR_PLAYER2][currentLanguage];
   drawStrCentered(32, 82, who,    ST7735_YELLOW, 2);
-  // "WINS!" yellow, size 2 — 5 chars x 12px = 60px, centered: x=(160-60)/2=50
   drawStrCentered(50, 102, Phrases[STR_WINNER][currentLanguage], ST7735_YELLOW, 2);
 }
 
@@ -442,7 +426,8 @@ void updateHealth(void)
 
 void initGame(void)
 {
-  ST7735_SetRotation(0);           // portrait: 128 wide x 160 tall
+
+  ST7735_SetRotation(0); 
   ST7735_FillScreen(ST7735_BLACK);
 
   // Ground strip with bright highlight edge
@@ -549,6 +534,7 @@ int main(void){ // main2
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
+  Sound_Init();
   Sensor1.Init(5);
   Sensor2.Init(4);
   Switch_Init();        // must be before timer so ISR can read buttons on start screen
@@ -574,13 +560,12 @@ int main(void){ // main2
     Player1.draw();
     Player2.draw();
 
-    // per-round damage popup state (re-zeroed each round)
     int16_t dmgAmt1 = 0, dmgAmt2 = 0;
     uint8_t dmgTimer1 = 0, dmgTimer2 = 0;
     int16_t dmgY1 = 0, dmgY2 = 0;
 
     while (fighting) {
-      while(!drawScreen);   // wait for 30 Hz ISR tick
+      while(!drawScreen);
       drawScreen = false;
 
       int16_t oldPos1 = Player1.getY();
@@ -601,6 +586,7 @@ int main(void){ // main2
       Player2.update(p2State);
 
       if(p1State == CharacterState::PUNCH || p1State == CharacterState::KICK){
+        Sound_Start(attackSound, ATTACK_SOUND_LEN);
           if(Player1.checkHit(Player2.getX(), Player2.getY())){
               if(Player2.takeDmg(p1State)){
                   updateHealth();
@@ -613,6 +599,7 @@ int main(void){ // main2
           }
       }
       if(p2State == CharacterState::PUNCH || p2State == CharacterState::KICK){
+          Sound_Start(attackSound, ATTACK_SOUND_LEN);
           if(Player2.checkHit(Player1.getX(), Player1.getY())){
               if(Player1.takeDmg(p2State)){
                   updateHealth();
