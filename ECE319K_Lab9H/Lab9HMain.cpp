@@ -65,7 +65,7 @@ SlidePot Sensor1(1667,337); // copy calibration from Lab 7
 SlidePot Sensor2(1667, 337);
 int16_t startX = 20;
 int16_t startY = 0; //Put in bottom left
-
+uint32_t interruptCounter = 0;
 Character Player1(startX, startY, CHAR1_SPRITES);
 
 int16_t x = 20;
@@ -74,9 +74,42 @@ Character Player2(x, y, CHAR2_SPRITES); //Put in bottom right
 CharacterState p1State = CharacterState::IDLE;
 CharacterState p2State = CharacterState::IDLE;
 
+bool inStartScreen = true;
+bool fighting = true;
+
+void initStartScreen(void)
+{
+  //ST7735_SetRotation(3);
+  // ST7735_DrawString(50, 50,"Mortal Kombat", ST7735_WHITE);
+  // ST7735_DrawString(40, 10, "Press to Start", ST7735_YELLOW);
+  //ST7735_SetRotation(0);
+  ST7735_OutString("Mortal Kombat\n");
+  ST7735_OutString("Press to Start");
+}
+
+void deathScreen(void)
+{
+  ST7735_FillScreen(ST7735_BLACK);
+  ST7735_OutString("Game Over\n");
+
+  if (Player1.getHealth() == 0)
+  {
+    ST7735_OutString("Player 2 Won!\n");
+  }
+  else
+  {
+    ST7735_OutString("Player 1 Won!\n");
+  }
+}
+
 void initScreen(void)
 {
   ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
+  ST7735_FillScreen(ST7735_BLACK);
+}
+
+void initGame(void)
+{
   ST7735_FillScreen(ST7735_BLACK);
   ST7735_FillRect(0, 0, 20, 160, ST7735_DARKGREY); //floor
 
@@ -103,6 +136,7 @@ int16_t pos1, pos2;
 // games  engine runs at 30Hz
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
+  interruptCounter++;
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
 // game engine goes here
@@ -123,23 +157,32 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     bool p2Block = (sw & 0x10);  // PA28
     bool p2Kick  = (sw & 0x20);  // PA17
 
-    if(p1Kick)       p1State = CharacterState::KICK;
-    else if(p1Punch) p1State = CharacterState::PUNCH;
-    else if(p1Block) p1State = CharacterState::DODGE;
-    else             p1State = CharacterState::IDLE;
+    if (inStartScreen && sw)
+    {
+        inStartScreen = false;
+    }
+    else if (fighting)
+    {
+    
+    
+      if(p1Kick)       p1State = CharacterState::KICK;
+      else if(p1Punch) p1State = CharacterState::PUNCH;
+      else if(p1Block) p1State = CharacterState::DODGE;
+      else             p1State = CharacterState::IDLE;
 
-    if(p2Kick)       p2State = CharacterState::KICK;
-    else if(p2Punch) p2State = CharacterState::PUNCH;
-    else if(p2Block) p2State = CharacterState::DODGE;
-    else             p2State = CharacterState::IDLE;
+      if(p2Kick)       p2State = CharacterState::KICK;
+      else if(p2Punch) p2State = CharacterState::PUNCH;
+      else if(p2Block) p2State = CharacterState::DODGE;
+      else             p2State = CharacterState::IDLE;
 
 
-    // 1) sample slide pot
-    // 2) read input switches
-    // 3) move sprites
-    // 4) start sounds
-    // 5) set semaphore
-    drawScreen = true;
+      // 1) sample slide pot
+      // 2) read input switches
+      // 3) move sprites
+      // 4) start sounds
+      // 5) set semaphore
+      drawScreen = true;
+    }
     // NO LCD OUTPUT IN INTERRUPT SERVICE ROUTINES
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
   }
@@ -211,9 +254,13 @@ int main(void){ // main2
   Sensor1.Init(5);
   Sensor2.Init(4);
   initScreen();
-  Switch_Init();
+  initStartScreen();
   TimerG12_IntArm(2666667, 0);
   __enable_irq();
+
+  while(inStartScreen);
+  initGame();
+  Switch_Init();
   Player1.draw();
   Player2.draw();
   while(1)
@@ -225,7 +272,8 @@ int main(void){ // main2
     Player2.takeDmg(CharacterState::KICK);
     Player1.takeDmg(CharacterState::KICK);
     updateHealth();*/
-    if(drawScreen) {
+    if(drawScreen && fighting)
+    {
         drawScreen = false;
         Player1.setPosition(Player1.getX(), pos1);  // keep X, update Y
         Player2.setPosition(Player2.getX(), pos2);
@@ -233,6 +281,12 @@ int main(void){ // main2
         Player2.update(p2State);
         Player1.draw();
         Player2.draw();
+    }
+    if (Player1.getHealth() == 0 || Player2.getHealth() == 0)
+    {
+      fighting = false;
+      deathScreen();
+      Clock_Delay1ms(1000);
     }
     Clock_Delay1ms(16);
 
