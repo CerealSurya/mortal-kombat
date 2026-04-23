@@ -65,7 +65,7 @@ SlidePot Sensor1(1667,337); // copy calibration from Lab 7
 SlidePot Sensor2(1667, 337);
 int16_t startX = 20;
 int16_t startY = 0; //Put in bottom left
-uint32_t interruptCounter = 0;
+
 Character Player1(startX, startY, CHAR1_SPRITES);
 
 int16_t x = 20;
@@ -74,8 +74,10 @@ Character Player2(x, y, CHAR2_SPRITES); //Put in bottom right
 CharacterState p1State = CharacterState::IDLE;
 CharacterState p2State = CharacterState::IDLE;
 
+bool drawScreen = false;
 bool inStartScreen = true;
 bool fighting = true;
+bool spanishOn = false;
 
 void initStartScreen(void)
 {
@@ -85,6 +87,7 @@ void initStartScreen(void)
   //ST7735_SetRotation(0);
   ST7735_OutString("Mortal Kombat\n");
   ST7735_OutString("Press to Start");
+  ST7735_OutString("Press bottom right for Spanish");
 }
 
 void deathScreen(void)
@@ -130,13 +133,11 @@ void updateHealth(void)
   ST7735_FillRect(100, 110 + health2 / 2, 10, 50, ST7735_RED); //Player2 health bar
 }
 
-bool drawScreen = false;
 uint32_t Data1, Data2;
 int16_t pos1, pos2;
 // games  engine runs at 30Hz
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
-  interruptCounter++;
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
 // game engine goes here
@@ -156,7 +157,6 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     bool p2Punch = (sw & 0x08);  // PA27
     bool p2Block = (sw & 0x10);  // PA28
     bool p2Kick  = (sw & 0x20);  // PA17
-
     if (inStartScreen && sw)
     {
         inStartScreen = false;
