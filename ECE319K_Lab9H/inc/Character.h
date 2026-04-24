@@ -38,6 +38,8 @@ public:
 
     void moveX(int16_t amount);
     void moveY(int16_t amount);
+    void reset(int16_t newX, int16_t newY);
+    void setSpriteSet(const SpriteSet& sprites);
 
     int16_t getX() const { return x; }
     int16_t getY() const { return y; }

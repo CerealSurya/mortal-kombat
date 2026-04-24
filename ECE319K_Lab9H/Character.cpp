@@ -20,6 +20,7 @@ Character::Character(int16_t startX, int16_t startY, const SpriteSet& sprites)
 
 bool Character::takeDmg(CharacterState attack)
 {
+    if(state == CharacterState::DODGE) return false;
     if (attack == CharacterState::KICK)
     {
         health -= 10;
@@ -95,6 +96,10 @@ void Character::update(CharacterState requestedState)
             actionTimer = FRAME_HOLD_TICKS;
         }
     }
+    else if (state == CharacterState::DODGE && requestedState == CharacterState::DODGE)
+    {
+        // Held block: keep DODGE as long as the ISR keeps requesting it
+    }
     else
     {
         if (actionTimer > 0) {
@@ -141,6 +146,24 @@ void Character::draw()
 void Character::blitSprite(int16_t drawX, int16_t drawY, const SPRITE_ARRAY* sprite, bool transparent, uint16_t transparentColor)
 {
     ST7735_DrawBitmap(drawX, drawY + sprite->HEIGHT - 1, sprite->arr, sprite->WIDTH, sprite->HEIGHT);
+}
+
+void Character::setSpriteSet(const SpriteSet& sprites) {
+    spriteIdle  = sprites.idle;
+    spritePunch = sprites.punch;
+    spriteKick  = sprites.kick;
+    spriteDodge = sprites.dodge;
+    currentSprite = prevSprite = spriteIdle;
+}
+
+void Character::reset(int16_t newX, int16_t newY) {
+    x = prevX = newX;
+    y = prevY = newY;
+    health = 100;
+    isAlive = true;
+    state = CharacterState::IDLE;
+    actionTimer = 0;
+    currentSprite = prevSprite = spriteIdle;
 }
 
 void Character::setPosition(int16_t newX, int16_t newY)

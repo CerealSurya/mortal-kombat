@@ -21,5 +21,5 @@ struct SpriteSet {
 };
 
 extern const SpriteSet CHAR1_SPRITES;
-
 extern const SpriteSet CHAR2_SPRITES;
+extern const SpriteSet CHAR3_SPRITES;  // placeholder — swap data when third sprite is ready
